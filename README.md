@@ -1,4 +1,3 @@
-\maketitle
 Introduction
 ============
 
@@ -63,7 +62,9 @@ constant to calculate distance since they are mostly parallel.
 Calculate Relative Speed
 ------------------------
 
-$$relative\_velocity = \frac{new\_estimated\_object\_distance - old\_estimated\_object\_distance}{time}$$
+```
+relative_velocity = (new_estimated_object_distance - old_estimated_object_distance) / time
+```
 Given time we will experiment with using histogram of gradients to
 calculate the velocity.
 
