@@ -1,4 +1,8 @@
 *.aux
 *.log
 
-dataset/*
+*.swp
+*.swa
+
+*/**/*.swp
+*/**/*.swa
