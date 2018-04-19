@@ -8,7 +8,9 @@
 using namespace std;
 using namespace cv;
 
-Mat sobel_func(cv::Mat* img) {
+int DEFAULT_PYR_DEPTH = 3;
+
+Mat sobel_func(cv::Mat img) {
 	
 	Mat frame, frame_gray;
 	Mat ret;
@@ -17,7 +19,7 @@ Mat sobel_func(cv::Mat* img) {
 	int delta = 0;
 	int ddepth = CV_16S;
 
-	frame = *img;
+	frame = img.clone();
 	
 	if(frame.empty()){ 
 
@@ -25,7 +27,8 @@ Mat sobel_func(cv::Mat* img) {
 		//return -1; 
 	}
 	
-	GaussianBlur( frame, frame, Size(3,3), 0, 0, BORDER_DEFAULT );	// Removes noise with Gaussian blur
+	//GaussianBlur( frame, frame, Size(3,3), 0, 0, BORDER_DEFAULT );	// Removes noise with Gaussian blur
+	GaussianBlur( frame, frame, Size(3,3), 0, 0, BORDER_DEFAULT );
 	
 	cvtColor( frame, frame_gray, COLOR_BGR2GRAY );	// Converts to grayscale
 	
@@ -47,11 +50,11 @@ Mat sobel_func(cv::Mat* img) {
 
 
 // Returns a gaussian pyramid for a given frame.
-std::vector<cv::Mat> gaussian_pyramid(cv::Mat* img, int size = 3) {
+std::vector<cv::Mat> gaussian_pyramid(cv::Mat img, int size = DEFAULT_PYR_DEPTH) {
 	
 	std::vector<cv::Mat> G;
 
-	cv::Mat src = *img;
+	cv::Mat src = img;
 	cv::Mat dst;
 
 
@@ -66,11 +69,11 @@ std::vector<cv::Mat> gaussian_pyramid(cv::Mat* img, int size = 3) {
 }
 
 // Returns the Laplacian pyramid of a given image.
-std::vector<cv::Mat> laplacian_pyramid(cv::Mat* img, std::vector<cv::Mat> G = std::vector<cv::Mat>(), int size = 3) {
+std::vector<cv::Mat> laplacian_pyramid(cv::Mat img, std::vector<cv::Mat> G = std::vector<cv::Mat>(), int size = DEFAULT_PYR_DEPTH) {
 
 	std::vector<cv::Mat> L;
 
-	cv::Mat src = *img;
+	cv::Mat src = img;
 	cv::Mat G_up;
 
 	if(G.empty()) {
@@ -78,21 +81,15 @@ std::vector<cv::Mat> laplacian_pyramid(cv::Mat* img, std::vector<cv::Mat> G = st
 	}
 	
 	size = G.size();
-	L.resize(size);
+	
+	L = G;
 
 	for (int i = 0; i < size - 1; ++i)
 	{
 		pyrUp(G[i+1], G_up);
 
-		L.push_back(G[i] - G_up);
-
-		printf("asdasd\n");
-		imshow("LAPL PYR", L[i]);
-		waitKey();
-		printf("qweqweqwe\n");
+		L[i] = L[i] - G_up;
 	}
-
-	//L.push_back( G[G.size()] );
 
 	return L;
 }
