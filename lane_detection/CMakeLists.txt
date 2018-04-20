@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.5.1 )
 
-project(lab_0_intro)
+project(lane_detection)
 
 # Compiler flags
 if (MSVC)
