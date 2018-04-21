@@ -6,3 +6,6 @@
 
 */**/*.swp
 */**/*.swa
+
+*/build/*
+!*/build/.gitkeep
