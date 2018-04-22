@@ -28,7 +28,7 @@ Mat sobel_func(cv::Mat img) {
 	}
 	
 	//GaussianBlur( frame, frame, Size(3,3), 0, 0, BORDER_DEFAULT );	// Removes noise with Gaussian blur
-	GaussianBlur( frame, frame, Size(3,3), 0, 0, BORDER_DEFAULT );
+	GaussianBlur( frame, frame, Size(7,7), 2, 2, BORDER_DEFAULT );
 	
 	cvtColor( frame, frame_gray, COLOR_BGR2GRAY );	// Converts to grayscale
 	
