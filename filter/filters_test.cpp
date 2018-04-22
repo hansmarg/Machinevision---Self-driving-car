@@ -19,7 +19,8 @@ void test_sobel(cv::Mat frame){
 
 	imshow("Sobel", sob_frame);
 
-	waitKey();
+	while(waitKey() != 32)
+		{continue;}
 
 }
 
@@ -31,7 +32,8 @@ void test_gaussian_pyramid(cv::Mat frame){
 	for (int i = 0; i < gauss_pyr.size(); ++i)
 	{
 		imshow("Gaussian pyramid", gauss_pyr[i]);
-		waitKey();
+		while(waitKey() != 32)
+			{continue;}
 	}
 }
 
@@ -43,7 +45,8 @@ void test_laplacian_pyramid(cv::Mat frame){
 	for (int i = 0; i < lapl_pyr.size(); ++i)
 	{
 		imshow("Laplacian pyramid", lapl_pyr[i]);
-		waitKey();
+		while(waitKey() != 32)
+			{continue;}
 	}
 }
 
@@ -54,12 +57,17 @@ void test_canny(cv::Mat frame) {
 
 	src = frame.clone();
 
-	GaussianBlur( src, src, Size(3,3), 0, 0, BORDER_DEFAULT );
+	GaussianBlur( src, src, Size(7,7), 2, 2, BORDER_DEFAULT );
 
-	Canny(src, cannied, 0, 30);
+
+	Canny(src, cannied, 80,100); 
+
+	namedWindow("Canny");
 
 	imshow("Canny", cannied);
-	waitKey();
+
+	while(waitKey() != 32)
+		{continue;}
 }
 
 int main(int argc, char* argv[]) {
@@ -74,7 +82,7 @@ int main(int argc, char* argv[]) {
 
 	test_canny(frame);
 
-//	test_sobel(frame);
+	test_sobel(frame);
 
 //	test_gaussian_pyramid(frame);
 
