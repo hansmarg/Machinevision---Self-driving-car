@@ -55,10 +55,6 @@ int main(int argc, char* argv[])
                        CV_AA,             // connectedness, 4 or 8
                        0);                // Bits of radius to treat as fraction
 
-    //Mat C3mask;
-    //Mat t[] = {mask, mask, mask};
-    //merge(t, 3, C3mask);
-
     image = image.mul(mask);
 
     // (AFTER MOD) show the image inside the window
