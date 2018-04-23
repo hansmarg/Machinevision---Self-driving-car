@@ -8,6 +8,12 @@ using namespace cv;
 using namespace std;
 
 
+void showim(string windowName, Mat image){
+	imshow(windowName, image);
+	while(waitKey() != 32) continue;
+}
+
+
 Mat crop_img(Mat frame){
     // MOD THE IMAGE
     cv::Mat image = frame.clone();							// C3
@@ -30,9 +36,6 @@ Mat crop_img(Mat frame){
 
 
     image = image.mul(mask);
-    imshow("HoughLines", image);
-	while(waitKey() != 32 )
-		{continue;}
 
     return image;
 }
@@ -40,36 +43,33 @@ Mat crop_img(Mat frame){
 void test_houghLines(cv::Mat img){
 
 	cv::Mat frame = img.clone();
-	cv::Mat cframe; // cropped image
+	cv::Mat cframe; // cropped frame
 	cv::Mat cdst, src;
 	vector<Vec4i> lines;
 
-	double rho = 10;
-	double theta = 0.5;
-	int threshold = 50; 
-
+	//double rho = 10;
+	//double theta = 0.5;
+	//int threshold = 50; 
 
 	//frame = sobel_func(frame);
-	GaussianBlur( frame, frame, Size(7,7), 5, 5, BORDER_DEFAULT );
-	
-	cv::Scalar min_color = cv::Scalar(0,200,200);
-	cv::Scalar max_color = cv::Scalar(255,255,255);
-	cv::inRange(frame, min_color,  max_color, frame);
+	//cv::Scalar min_color = cv::Scalar(0,200,200);
+	//cv::Scalar max_color = cv::Scalar(255,255,255);
+	//cv::inRange(frame, min_color,  max_color, src);
 
 	//src = frame.clone();
-	imshow("HoughLines", frame);
-	while(waitKey() != 32 )
-		{continue;}
+	showim("Frame", frame);
+	
+	GaussianBlur( frame, src, Size(7,7), 5, 5, BORDER_DEFAULT );
 
+	Canny(src, frame, 80,100); 
 
-	//Canny(src, frame, 80,100); 
+	showim("Canny", frame);
 
 	cframe = crop_img(frame);
 
 	HoughLinesP(cframe, lines, 1, CV_PI/180, 25, 30, 250 );
 	
 	cvtColor(frame, cdst, CV_GRAY2BGR);
-
 
 	//HoughLines(frame, frame, rho, theta, threshold);
 
@@ -80,12 +80,8 @@ void test_houghLines(cv::Mat img){
 		line( cdst, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
 	}
 
-	imshow("HoughLines", frame);
-	while(waitKey() != 32 )
-		{continue;}
-	imshow("detected lines", cdst);
-	while(waitKey() != 32 )
-		{continue;}
+
+	showim("Detected lines", cdst);
 
 }
 int main(int argc, char** argv){
@@ -95,10 +91,10 @@ int main(int argc, char** argv){
 	frame = imread( argv[1], IMREAD_COLOR ); // Read image
 
 	test_houghLines(frame); 
-	//imshow("detected lines", frame);
-	//while(waitKey() != 32 )
-	//	{continue;}
+	
 
+	//showim("Frame end", frame);
+	return 0; 
 }
 
 
