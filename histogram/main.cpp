@@ -15,7 +15,7 @@ int main( int argc, char** argv )
 
     // check for failure
     if(argc < 2){
-        img_path = "../crap/test1.jpg";
+        img_path = "../crap/test3.jpg";
     }else{
         img_path = argv[1];
     }
@@ -28,6 +28,22 @@ int main( int argc, char** argv )
         std::cout << "Could not open or find image: " << img_path << std::endl;
         return 1;
     }
+
+    // try to create mask --------------------------------------------------------------
+    cv::Mat mask = cv::Mat::zeros(image.rows, image.cols, CV_8U); // all 0
+
+    std::vector<cv::Point> points;
+    points.push_back(cv::Point(520 , 470));   //point1
+    points.push_back(cv::Point(800 , 470));   //point2
+    points.push_back(cv::Point(1120, 665));   //point3
+    points.push_back(cv::Point(200 , 665));   //point4
+
+    cv::fillConvexPoly(mask,              // Image to be drawn on
+                       points,            // C-Style array of points
+                       1, // Color , BGR form
+                       CV_AA,             // connectedness, 4 or 8
+                       0);                // Bits of radius to treat as fraction
+    // ---------------------------------------------------------------------------------
 
     Mat dst;
 
@@ -45,13 +61,13 @@ int main( int argc, char** argv )
     Mat b_hist, g_hist, r_hist;
 
     /// Compute the histograms:
-    calcHist( &bgr_planes[0], 1, 0, Mat(), b_hist, 1, &histSize, &histRange, true, false );
-    calcHist( &bgr_planes[1], 1, 0, Mat(), g_hist, 1, &histSize, &histRange, true, false );
-    calcHist( &bgr_planes[2], 1, 0, Mat(), r_hist, 1, &histSize, &histRange, true, false );
+    calcHist( &bgr_planes[0], 1, 0, mask, b_hist, 1, &histSize, &histRange, true, false );
+    calcHist( &bgr_planes[1], 1, 0, mask, g_hist, 1, &histSize, &histRange, true, false );
+    calcHist( &bgr_planes[2], 1, 0, mask, r_hist, 1, &histSize, &histRange, true, false );
 
     // Draw the histograms for B, G and R
     int hist_h = 400;
-    int hist_w = 512;
+    int hist_w = histSize; //512;
     int unit_w = cvRound( (double) hist_w/histSize );
 
     Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
