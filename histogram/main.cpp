@@ -45,9 +45,9 @@ int main( int argc, char** argv )
     Mat b_hist, g_hist, r_hist;
 
     /// Compute the histograms:
-    calcHist( &bgr_planes[0], 1, 0, mask, b_hist, 1, &histSize, &histRange, true, false );
-    calcHist( &bgr_planes[1], 1, 0, mask, g_hist, 1, &histSize, &histRange, true, false );
-    calcHist( &bgr_planes[2], 1, 0, mask, r_hist, 1, &histSize, &histRange, true, false );
+    calcHist( &bgr_planes[0], 1, 0, Mat(), b_hist, 1, &histSize, &histRange, true, false );
+    calcHist( &bgr_planes[1], 1, 0, Mat(), g_hist, 1, &histSize, &histRange, true, false );
+    calcHist( &bgr_planes[2], 1, 0, Mat(), r_hist, 1, &histSize, &histRange, true, false );
 
     // Draw the histograms for B, G and R
     int hist_h = 400;
