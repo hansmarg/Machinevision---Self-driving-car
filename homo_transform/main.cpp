@@ -1,5 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <time.h>
 
 //using namespace cv;
 //using namespace std;
@@ -9,12 +10,18 @@ void draw_polygon(cv::Mat img, std::vector<cv::Point> corners){
     int s = corners.size();
     if(s < 2) return;
 
-    cv::line(img, corners[s-1], corners[0], cv::Scalar(0,0,0), 10, 8, 0);
+    cv::line(img, corners[s-1], corners[0], cv::Scalar(0,0,0), 4, 8, 0);
 
     unsigned int i;
     for(i=1; i<corners.size(); i++){
-        cv::line(img, corners[i-1], corners[i], cv::Scalar(0,0,0), 10, 8, 0);
+        cv::line(img, corners[i-1], corners[i], cv::Scalar(0,0,0), 4, 8, 0);
     }
+}
+
+static int diffclock_ms(clock_t clock1, clock_t clock2){
+    double diffticks=clock1-clock2;
+    double diffms=(diffticks)/(CLOCKS_PER_SEC/1000);
+    return (int)diffms;
 }
 
 int main(int argc, char* argv[])
@@ -24,6 +31,7 @@ int main(int argc, char* argv[])
     // flag default values
     bool flag_autoplay = false;
     bool flag_speedup = false;
+    bool flag_stable_trap = false;
 
     // parse arguments
     for(int i=1; i<argc; i++){
@@ -32,6 +40,9 @@ int main(int argc, char* argv[])
         }
         else if(strcmp(argv[i], "--speedup") == 0){
             flag_speedup = true;
+        }
+        else if(strcmp(argv[i], "--stable_trap") == 0){
+            flag_stable_trap = true;
         }
         else{
             video_path = argv[i];
@@ -57,7 +68,7 @@ int main(int argc, char* argv[])
     std::cout << "Frames per seconds : " << fps << std::endl;
 
     // set the wait time between each frame
-    int wait_time = flag_autoplay ? 1000/fps : 0;
+    int wait_time = 1000/fps;
     if(flag_speedup) wait_time = 6;
 
     // get height and width
@@ -68,21 +79,32 @@ int main(int argc, char* argv[])
     std::string video_window_name = "DASH CAM";
     cv::namedWindow(video_window_name/*, cv::WINDOW_NORMAL*/); //create a window
 
-    //std::string trans_window_name = "HOMO TRANSFORM";
-    //cv::namedWindow(trans_window_name/*, cv::WINDOW_NORMAL*/); //create a window
-
-    //std::string pixel_window_name = "PIXELATED";
-    //cv::namedWindow(pixel_window_name/*, cv::WINDOW_NORMAL*/); //create a window
-
     // create source points for polygon and transform
     std::vector<cv::Point> pts_src;
-    int a = 140 - 20;
-    int b = 460 + 50;
-    int t_center = cvRound(frame_w/2);
-    pts_src.push_back(cv::Point(t_center - a, 470));   //point1
-    pts_src.push_back(cv::Point(t_center + a, 470));   //point2
-    pts_src.push_back(cv::Point(t_center + b, 665));   //point3
-    pts_src.push_back(cv::Point(t_center - b, 665));   //point4
+    int a;
+    int b;
+    int t_center;
+    int t_height;
+    int t_bottom_padding;
+
+    if(flag_stable_trap){
+        a = 140 - 20;
+        b = 460 + 80;
+        t_center = cvRound(frame_w/2);
+        t_height = 205;
+        t_bottom_padding = 50;
+    }else{
+        a = 140 - 50;
+        b = 460 + 80;
+        t_center = cvRound(frame_w/2);
+        t_height = 220;
+        t_bottom_padding = 60;
+    }
+
+    pts_src.push_back(cv::Point(t_center - a, frame_h - t_height - t_bottom_padding)); // point1
+    pts_src.push_back(cv::Point(t_center + a, frame_h - t_height - t_bottom_padding)); // point2
+    pts_src.push_back(cv::Point(t_center + b, frame_h - t_bottom_padding ));           // point3
+    pts_src.push_back(cv::Point(t_center - b, frame_h - t_bottom_padding));            // point4
 
     // destination points for transform
     cv::Size warp_img_size(400, 400);
@@ -102,6 +124,9 @@ int main(int argc, char* argv[])
     cv::Mat mask(frame_h, frame_w, CV_8UC3, cv::Scalar(1,1,1));
     draw_polygon(mask, pts_src);
 
+    // time calculation
+    clock_t time_s;
+    time_s = clock();
 
     while (true)
     {
@@ -121,29 +146,30 @@ int main(int argc, char* argv[])
         // add trapazoid outline to frame
         cv::Mat marked_img = frame.mul(mask);
 
-        // create pixelated image
-        cv::Mat pixel_img(im_out);
-        cv::resize(pixel_img, pixel_img, cv::Size(), 0.25, 0.25, cv::INTER_AREA);
-        cv::resize(pixel_img, pixel_img, cv::Size(),    4,    4, cv::INTER_AREA);
-
         // add pictures on top of big marked_img
         im_out.copyTo(marked_img(cv::Rect(marked_img.cols - im_out.cols - 20, 20 , im_out.cols, im_out.rows)));
-        pixel_img.copyTo(marked_img(cv::Rect(marked_img.cols - im_out.cols - pixel_img.cols - 40, 20 , pixel_img.cols, pixel_img.rows)));
 
         //show the frame in the created window
         cv::imshow(video_window_name, marked_img);
-        //cv::imshow(trans_window_name, im_out);
-        //cv::imshow(pixel_window_name, pixel_img);
 
         //wait for for 10 ms until any key is pressed.
         //If the 'Esc' key is pressed, break the while loop.
         //If the any other key is pressed, continue the loop
         //If any key is not pressed withing 10 ms, continue the loop
-        if (cv::waitKey(wait_time) == 27)
+
+        // time end
+        int ms = diffclock_ms(clock(), time_s);
+        int wait = wait_time - ms;
+        printf("calculation time: %dms | wait: %dms\n", ms, wait);
+
+        wait = (wait > 0) ? wait : 1 ;
+
+        if (cv::waitKey(flag_autoplay ? wait : 0 ) == 27)
         {
             std::cout << "Esc key is pressed by user. Stoppig the video" << std::endl;
             break;
         }
+        time_s = clock();
     }
 
     // destroy the created window
