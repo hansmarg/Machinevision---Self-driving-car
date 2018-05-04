@@ -64,9 +64,12 @@ int main(int argc, char* argv[])
     // create windows
     std::string video_window_name = "DASH CAM";
     cv::namedWindow(video_window_name/*, cv::WINDOW_NORMAL*/); //create a window
+    //cv::namedWindow("green", cv::WINDOW_NORMAL); //create a window
+    //cv::namedWindow("blue", cv::WINDOW_NORMAL); //create a window
 
     // crate mask
     cv::Mat mask = cv::Mat::zeros(frame_h, frame_w, CV_8U); // all 0
+    cv::Mat frame_mask = cv::Mat::zeros(frame_h, frame_w, CV_8UC3); // all 0
 
     std::vector<cv::Point> mask_points = shapes::trapazoid( 140, 800, cvRound(frame_w/2), 205, frame_h - 265);
 
@@ -76,6 +79,17 @@ int main(int argc, char* argv[])
                        1, // Color , BGR form
                        CV_AA,             // connectedness, 4 or 8
                        0);                // Bits of radius to treat as fraction
+
+    // craete the mask
+    cv::fillConvexPoly(frame_mask,              // Image to be drawn on
+                       mask_points,            // C-Style array of points
+                       cv::Scalar(1,1,1), // Color , BGR form
+                       CV_AA,             // connectedness, 4 or 8
+                       0);                // Bits of radius to treat as fraction
+
+
+    int max_histo = cv::countNonZero(mask);
+    printf("max_histo: %d\n", max_histo);
 
 
     // destination points for transform
@@ -100,25 +114,55 @@ int main(int argc, char* argv[])
             break;
         }
 
+        frame /= 16;
+        frame *= 16;
+
         // split image into planes (bgr)
         std::vector<cv::Mat> bgr_planes;
         cv::split( frame, bgr_planes );
 
-        // calculate histogram
-        b_histo = histogram::intensity_histogram(bgr_planes[0], mask);
-        g_histo = histogram::intensity_histogram(bgr_planes[1], mask);
+        cv::Mat blue_frame  = bgr_planes[0];
+        cv::Mat green_frame = bgr_planes[1];
 
-        histo_plot = cv::Mat::zeros(plot_size.height/2, plot_size.width, CV_8UC3);
+        // calculate histogram
+        b_histo = histogram::intensity_histogram(blue_frame , mask);
+        g_histo = histogram::intensity_histogram(green_frame, mask);
+
+        // create plot canvases
+        histo_plot  = cv::Mat::zeros(plot_size.height/2, plot_size.width, CV_8UC3);
         histo_plot2 = cv::Mat::zeros(plot_size.height/2, plot_size.width, CV_8UC3);
-        shapes::plot(histo_plot, b_histo, cv::Scalar(255,0,0));
-        shapes::plot(histo_plot2, g_histo, cv::Scalar(0,255,0));
+
+        // kernel for smoothing
+        int kernel_size = 5;
+        cv::Mat kernel = cv::Mat::ones(kernel_size, 1, CV_8U); // all 0
+
+        // smooth blue
+        cv::Mat b_smooth;
+        filter2D(b_histo, b_smooth, -1, kernel);
+        b_smooth /= kernel_size;
+
+        // smooth green
+        cv::Mat g_smooth;
+        filter2D(g_histo, g_smooth, -1, kernel);
+        g_smooth /= kernel_size;
+
+        // plot original histos
+        shapes::plot(histo_plot , b_histo, cv::Scalar(255,0,0), 1, max_histo);
+        shapes::plot(histo_plot2, g_histo, cv::Scalar(0,255,0), 1, max_histo);
+
+        // plot smoothed histos
+        //shapes::plot(histo_plot , b_smooth, cv::Scalar(0,0,255), 1, max_histo);
+        //shapes::plot(histo_plot2, g_smooth, cv::Scalar(0,0,255), 1, max_histo);
 
         // add pictures on top of big frame
+        frame = frame.mul(frame_mask);
         histo_plot.copyTo(frame(cv::Rect(frame.cols - histo_plot.cols - 20, 20 , histo_plot.cols, histo_plot.rows)));
         histo_plot2.copyTo(frame(cv::Rect(frame.cols - histo_plot2.cols - 20, 40 + histo_plot.rows , histo_plot2.cols, histo_plot2.rows)));
 
         //show the frame in the created window
         cv::imshow(video_window_name, frame);
+        //cv::imshow("blue", blue_frame);
+        //cv::imshow("green", green_frame);
 
         //wait for for 10 ms until any key is pressed.
         //If the 'Esc' key is pressed, break the while loop.

@@ -52,10 +52,30 @@ void shapes::plot(
     cv::Mat canvas,
     cv::Mat vals_org,
     cv::Scalar color,
-    int thickness
+    int thickness,
+    int y_max
 ){
     // clone vals
     cv::Mat vals(vals_org);
+
+    if(y_max > -1){
+        //printf("y_max: %d\n", y_max);
+
+        vals.at<float>(0) = y_max;
+        for( int i = 1; i < vals.rows; i++ ){
+            if(vals.at<float>(i) > y_max){
+                vals.at<float>(i) = y_max;
+            }
+        }
+
+
+        //float sushi = 0;
+        //for( int i = 0; i < vals.rows; i++ ){
+        //    printf("%d -> %f\n", i, vals.at<float>(i));
+        //    //sushi += vals.at<float>(i);
+        //}
+        //printf("sushi: %f\n", sushi);
+    }
 
     // prepare unit width for x-axis streching
     int unit_w = cvRound( (double) canvas.cols/vals.rows );
@@ -63,9 +83,9 @@ void shapes::plot(
     // normalize values for y-axis stretching
     cv::normalize(vals, vals, 0, canvas.rows, cv::NORM_MINMAX, -1, cv::Mat() );
 
-    for( int i = 1; i < vals.rows; i++ ){
-        cv::line( canvas, cv::Point( unit_w*(i-1), cvRound(vals.at<float>(i-1)) ) ,
-                          cv::Point( unit_w*(i)  , cvRound(vals.at<float>(i))   ) ,
+    for( int i = 2; i < vals.rows; i++ ){
+        cv::line( canvas, cv::Point( unit_w*(i-1), canvas.rows - cvRound(vals.at<float>(i-1)) ) ,
+                          cv::Point( unit_w*(i)  , canvas.rows - cvRound(vals.at<float>(i))   ) ,
                           color, thickness, 8, 0  );
     }
 

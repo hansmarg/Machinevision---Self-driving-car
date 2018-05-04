@@ -28,7 +28,8 @@ namespace shapes{
             cv::Mat canvas,
             cv::Mat vals_org,
             cv::Scalar color = cv::Scalar(255,0,0),
-            int thickness = 1);
+            int thickness = 1,
+            int y_max = -1);
 }
 
 #endif // _SHAPES_H_
