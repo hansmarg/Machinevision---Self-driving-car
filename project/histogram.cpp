@@ -14,6 +14,39 @@ static int diffclock_ms(clock_t clock1, clock_t clock2){
 //using namespace cv;
 //using namespace std;
 
+//int calc_threshold(cv::Mat histo){
+//
+//    int th=0;
+//
+//    //for(int i=0; i<histo.rows; i++){
+//    //    printf("histo[%d] = %f\n", i, histo.at<float>(i));
+//    //}
+//
+//    return th;
+//}
+
+cv::Mat forat_mask(cv::Mat img, int th_blue, int th_green){
+	cv::Mat frame = img.clone();
+	cv::Mat ret;
+	cv::Scalar min_color = cv::Scalar(0,th_green,th_blue);
+	cv::Scalar max_color = cv::Scalar(255,255,255);
+	cv::inRange(frame, min_color,  max_color, ret);
+
+	return ret;
+}
+
+
+int mouseX = -1;
+int mouseY = -1;
+
+void CallBackFunc(int event, int x, int y, int flags, void* userdata){
+    if ( flags == cv::EVENT_FLAG_LBUTTON ){
+        //std::cout << "Left mouse button is clicked - position (" << x << ", " << y << ")" << std::endl;
+        mouseX = x;
+        mouseY = y;
+    }
+}
+
 int main(int argc, char* argv[])
 {
     std::string video_path = "../../dataset/project_video.mp4";
@@ -67,9 +100,12 @@ int main(int argc, char* argv[])
     //cv::namedWindow("green", cv::WINDOW_NORMAL); //create a window
     //cv::namedWindow("blue", cv::WINDOW_NORMAL); //create a window
 
+    //set the callback function for any mouse event
+    cv::setMouseCallback(video_window_name, CallBackFunc, NULL);
+
     // crate mask
     cv::Mat mask = cv::Mat::zeros(frame_h, frame_w, CV_8U); // all 0
-    cv::Mat frame_mask = cv::Mat::zeros(frame_h, frame_w, CV_8UC3); // all 0
+    cv::Mat frame_mask = cv::Mat(frame_h, frame_w, CV_8UC3, cv::Scalar(255,0,0)); // all 0
 
     std::vector<cv::Point> mask_points = shapes::trapazoid( 140, 800, cvRound(frame_w/2), 205, frame_h - 265);
 
@@ -93,7 +129,7 @@ int main(int argc, char* argv[])
 
 
     // destination points for transform
-    cv::Size plot_size(400, 400);
+    cv::Size plot_size(400, 200);
     cv::Mat b_histo, g_histo;
     cv::Mat histo_plot;
     cv::Mat histo_plot2;
@@ -102,20 +138,49 @@ int main(int argc, char* argv[])
     clock_t time_s;
     time_s = clock();
 
+    bool keep_frame = false;
+    cv::Mat org_frame;
+
+    int th_blue = 0, th_green = 0;
+
     while (true)
     {
-        cv::Mat frame;
-        bool bSuccess = cap.read(frame); // read a new frame from video
 
-        //Breaking the while loop at the end of the video
-        if (bSuccess == false)
-        {
-            std::cout << "Found the end of the video" << std::endl;
-            break;
+        if(mouseX > -1 && mouseY > -1){
+
+            if(mouseX > (frame_w - plot_size.width - 20) && mouseX < (frame_w - 20)){
+                if(mouseY > 20 && mouseY < (20 + plot_size.height)){
+                    th_blue = (mouseX - (frame_w - plot_size.width - 20)) * 256 / plot_size.width;
+                    std::cout << "th_blue = " << th_blue << std::endl;
+                }
+                else if(mouseY > (40 + plot_size.height) && mouseY < (40 + plot_size.height*2)){
+                    th_green = (mouseX - (frame_w - plot_size.width - 20)) * 256 / plot_size.width;
+                    std::cout << "th_green = " << th_green << std::endl;
+                }
+            }
+
+            mouseX = -1;
+            mouseY = -1;
+            //keep_frame = true;
         }
 
-        frame /= 16;
-        frame *= 16;
+        if(keep_frame){
+            //keep_frame = false;
+        }else{
+            bool bSuccess = cap.read(org_frame); // read a new org_frame from video
+
+            //Breaking the while loop at the end of the video
+            if (bSuccess == false)
+            {
+                std::cout << "Found the end of the video" << std::endl;
+                break;
+            }
+        }
+
+        cv::Mat frame(org_frame);
+
+        //frame /= 4;
+        //frame *= 4;
 
         // split image into planes (bgr)
         std::vector<cv::Mat> bgr_planes;
@@ -125,30 +190,36 @@ int main(int argc, char* argv[])
         cv::Mat green_frame = bgr_planes[1];
 
         // calculate histogram
-        b_histo = histogram::intensity_histogram(blue_frame , mask);
-        g_histo = histogram::intensity_histogram(green_frame, mask);
+        b_histo = histogram::intensity_histogram(blue_frame , mask, 256);
+        g_histo = histogram::intensity_histogram(green_frame, mask, 256);
 
         // create plot canvases
-        histo_plot  = cv::Mat::zeros(plot_size.height/2, plot_size.width, CV_8UC3);
-        histo_plot2 = cv::Mat::zeros(plot_size.height/2, plot_size.width, CV_8UC3);
+        histo_plot  = cv::Mat::zeros(plot_size.height, plot_size.width, CV_8UC3);
+        histo_plot2 = cv::Mat::zeros(plot_size.height, plot_size.width, CV_8UC3);
 
-        // kernel for smoothing
-        int kernel_size = 5;
-        cv::Mat kernel = cv::Mat::ones(kernel_size, 1, CV_8U); // all 0
+        // plot thesholds
+        cv::line( histo_plot , cv::Point( (th_blue*plot_size.width / 256) , 0 ) , cv::Point( (th_blue*plot_size.width / 256) ,  plot_size.height) , cv::Scalar(0,0,255), 1, 8, 0  );
+        cv::line( histo_plot2, cv::Point( (th_green*plot_size.width / 256) , 0 ) , cv::Point( (th_green*plot_size.width / 256) ,  plot_size.height) , cv::Scalar(0,0,255), 1, 8, 0  );
 
-        // smooth blue
-        cv::Mat b_smooth;
-        filter2D(b_histo, b_smooth, -1, kernel);
-        b_smooth /= kernel_size;
+        //// kernel for smoothing
+        //int kernel_size = 5;
+        //cv::Mat kernel = cv::Mat::ones(kernel_size, 1, CV_8U); // all 0
 
-        // smooth green
-        cv::Mat g_smooth;
-        filter2D(g_histo, g_smooth, -1, kernel);
-        g_smooth /= kernel_size;
+        //// smooth blue
+        //cv::Mat b_smooth;
+        //filter2D(b_histo, b_smooth, -1, kernel);
+        //b_smooth /= kernel_size;
+
+        //// smooth green
+        //cv::Mat g_smooth;
+        //filter2D(g_histo, g_smooth, -1, kernel);
+        //g_smooth /= kernel_size;
+
+        //calc_threshold(g_histo);
 
         // plot original histos
-        shapes::plot(histo_plot , b_histo, cv::Scalar(255,0,0), 1, max_histo);
-        shapes::plot(histo_plot2, g_histo, cv::Scalar(0,255,0), 1, max_histo);
+        shapes::plot(histo_plot , b_histo, cv::Scalar(255,0,0), 1); //, max_histo);
+        shapes::plot(histo_plot2, g_histo, cv::Scalar(0,255,0), 1); //, max_histo);
 
         // plot smoothed histos
         //shapes::plot(histo_plot , b_smooth, cv::Scalar(0,0,255), 1, max_histo);
@@ -156,6 +227,16 @@ int main(int argc, char* argv[])
 
         // add pictures on top of big frame
         frame = frame.mul(frame_mask);
+
+        frame = forat_mask(frame, th_blue, th_green);
+
+        std::vector<cv::Mat> channels;
+        channels.push_back(frame);
+        channels.push_back(frame);
+        channels.push_back(frame);
+
+        cv::merge(channels, frame);
+
         histo_plot.copyTo(frame(cv::Rect(frame.cols - histo_plot.cols - 20, 20 , histo_plot.cols, histo_plot.rows)));
         histo_plot2.copyTo(frame(cv::Rect(frame.cols - histo_plot2.cols - 20, 40 + histo_plot.rows , histo_plot2.cols, histo_plot2.rows)));
 
@@ -176,11 +257,23 @@ int main(int argc, char* argv[])
 
         wait = (wait > 0) ? wait : 1 ;
 
-        if (cv::waitKey(flag_autoplay ? wait : 0 ) == 27)
+        int wait_key = cv::waitKey(flag_autoplay ? wait : 0 );
+        if (wait_key == 27)
         {
             std::cout << "Esc key is pressed by user. Stoppig the video" << std::endl;
             break;
         }
+        //else if(wait_key == 32){  // space - key
+        //    flag_autoplay = !flag_autoplay;
+        //}
+        //else if(wait_key == 104){ // h - key
+        else if(wait_key == 32){ // space - key
+            //std::cout << "h key" << std::endl;
+            keep_frame = !keep_frame; //true;
+        }
+        //else{
+        //    std::cout << "key pressed: " << wait_key << std::endl;
+        //}
         time_s = clock();
     }
 

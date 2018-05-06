@@ -41,14 +41,14 @@ Mat crop_img(Mat frame){
 }
 
 cv::Mat forat_mask(cv::Mat img){
-	cv::Mat frame = img.clone(); 
+	cv::Mat frame = img.clone();
 	cv::Mat ret;
-	cv::Scalar min_color = cv::Scalar(0,180,225); 
+	cv::Scalar min_color = cv::Scalar(0,180,225);
 	cv::Scalar max_color = cv::Scalar(255,255,255);
 	cv::inRange(frame, min_color,  max_color, ret);
 
 	return ret;
-}	
+}
 
 void test_houghLines(cv::Mat img){
 
@@ -59,7 +59,7 @@ void test_houghLines(cv::Mat img){
 
 	//double rho = 10;
 	//double theta = 0.5;
-	//int threshold = 50; 
+	//int threshold = 50;
 
 	//frame = sobel_func(frame);
 	//cv::Scalar min_color = cv::Scalar(0,200,200);
@@ -68,11 +68,11 @@ void test_houghLines(cv::Mat img){
 
 	//src = frame.clone();
 	showim("Frame", frame);
-	
+
 //	GaussianBlur( frame, src, Size(13,13), 10, 10, BORDER_DEFAULT );
 //	showim("<Src", src);
 
-	//Canny(src, frame, 80,100); 
+	//Canny(src, frame, 80,100);
 	frame = forat_mask(frame);
 
 	showim("Canny", frame);
@@ -80,7 +80,7 @@ void test_houghLines(cv::Mat img){
 	cframe = crop_img(frame);
 
 	HoughLinesP(cframe, lines, 1, CV_PI/180, 25, 30, 250 );
-	
+
 	cvtColor(frame, cdst, CV_GRAY2BGR);
 
 	//HoughLines(frame, frame, rho, theta, threshold);
@@ -102,8 +102,8 @@ void cv::fitLine 	( 	InputArray  	points,
 		int  	distType,
 		double  	param,
 		double  	reps,
-		double  	aeps 
-	) 	
+		double  	aeps
+	)
 */
 void test_ransac(cv::Mat img){
 	cv::Mat frame = img.clone();
@@ -121,19 +121,19 @@ void test_ransac(cv::Mat img){
 
 	findNonZero(cframe, nonzero);
 
-//	printf("%d, %d\n", lines.size[0], lines.size[1]);	
+//	printf("%d, %d\n", lines.size[0], lines.size[1]);
 
 	fitLine(nonzero, lines, DIST_L1, 0, 20, 20);
 
 	for( int i = 0; i < 2000; i++ )
 	{
 		//Point l = lines[i];
-		Vec4f l = lines[i];	
+		Vec4f l = lines[i];
 
 		frame.at<Mat>( Point(l[0],l[1]) ) = Scalar(0,0,255);
 		frame.at<Mat>( Point(l[2],l[3]) ) = Scalar(255,255,255);
 
-		printf("%d: [%f, %f]	[%f, %f]\n", i, l[0], l[1], l[2], l[3]);	
+		printf("%d: [%f, %f]	[%f, %f]\n", i, l[0], l[1], l[2], l[3]);
 
 		line( frame, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
 	}
@@ -141,7 +141,7 @@ void test_ransac(cv::Mat img){
 	showim("fitLine()", frame);
 
 	//cvtColor(frame, frame, CV_BGR2GRAY);
-	//showim("Grayscale", frame);	
+	//showim("Grayscale", frame);
 
 
 }
@@ -153,18 +153,18 @@ int main(int argc, char** argv){
 
 	frame = imread( argv[1], IMREAD_COLOR ); // Read image
 
-	test_houghLines(frame); 
+	test_houghLines(frame);
 
 	//test_ransac(frame);
 
 
 	showim("Frame end", frame);
-	return 0; 
+	return 0;
 }
 
 
 /*
-void cv::HoughLines 	( 	
+void cv::HoughLines 	(
 		InputArray  	image,
 		OutputArray  	lines,
 		double  	rho,
@@ -173,6 +173,6 @@ void cv::HoughLines 	(
 		double  	srn = 0,
 		double  	stn = 0,
 		double  	min_theta = 0,
-		double  	max_theta = CV_PI 
-	) 		
+		double  	max_theta = CV_PI
+	)
 */

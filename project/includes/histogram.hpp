@@ -7,7 +7,8 @@
 namespace histogram{
     cv::Mat intensity_histogram(
            cv::Mat image,
-           cv::Mat mask );
+           cv::Mat mask,
+           int histSize = 256);
 }
 
 #endif // _HISTOGRAM_H_
