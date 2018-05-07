@@ -14,21 +14,25 @@ static int diffclock_ms(clock_t clock1, clock_t clock2){
 //using namespace cv;
 //using namespace std;
 
-//int calc_threshold(cv::Mat histo){
-//
-//    int th=0;
-//
-//    //for(int i=0; i<histo.rows; i++){
-//    //    printf("histo[%d] = %f\n", i, histo.at<float>(i));
-//    //}
-//
-//    return th;
-//}
+int calc_threshold(cv::Mat histo, int shift=0){
 
-cv::Mat forat_mask(cv::Mat img, int th_blue, int th_green){
+    for(int i=histo.rows-2; i>=0; i++){
+
+        float d = histo.at<float>(i) - histo.at<float>(i+1);
+
+        if(d > 0){
+            return ((i+shift)*16)-4;
+        }
+
+    }
+
+    return 0;
+}
+
+cv::Mat forat_mask(cv::Mat img, int th_blue, int th_green, int th_red){
 	cv::Mat frame = img.clone();
 	cv::Mat ret;
-	cv::Scalar min_color = cv::Scalar(0,th_green,th_blue);
+	cv::Scalar min_color = cv::Scalar(th_blue,th_green,th_red);
 	cv::Scalar max_color = cv::Scalar(255,255,255);
 	cv::inRange(frame, min_color,  max_color, ret);
 
@@ -130,9 +134,10 @@ int main(int argc, char* argv[])
 
     // destination points for transform
     cv::Size plot_size(400, 200);
-    cv::Mat b_histo, g_histo;
+    cv::Mat b_histo, g_histo, r_histo;
     cv::Mat histo_plot;
     cv::Mat histo_plot2;
+    cv::Mat histo_plot3;
 
     // time calculation
     clock_t time_s;
@@ -141,7 +146,7 @@ int main(int argc, char* argv[])
     bool keep_frame = false;
     cv::Mat org_frame;
 
-    int th_blue = 0, th_green = 0;
+    int th_blue = 0, th_green = 0, th_red = 180;
 
     while (true)
     {
@@ -156,6 +161,10 @@ int main(int argc, char* argv[])
                 else if(mouseY > (40 + plot_size.height) && mouseY < (40 + plot_size.height*2)){
                     th_green = (mouseX - (frame_w - plot_size.width - 20)) * 256 / plot_size.width;
                     std::cout << "th_green = " << th_green << std::endl;
+                }
+                else if(mouseY > (60 + plot_size.height*2) && mouseY < (60 + plot_size.height*3)){
+                    th_red = (mouseX - (frame_w - plot_size.width - 20)) * 256 / plot_size.width;
+                    std::cout << "th_red = " << th_red << std::endl;
                 }
             }
 
@@ -179,8 +188,8 @@ int main(int argc, char* argv[])
 
         cv::Mat frame(org_frame);
 
-        //frame /= 4;
-        //frame *= 4;
+        frame /= 16;
+        frame *= 16;
 
         // split image into planes (bgr)
         std::vector<cv::Mat> bgr_planes;
@@ -188,18 +197,22 @@ int main(int argc, char* argv[])
 
         cv::Mat blue_frame  = bgr_planes[0];
         cv::Mat green_frame = bgr_planes[1];
+        cv::Mat red_frame   = bgr_planes[2];
 
         // calculate histogram
-        b_histo = histogram::intensity_histogram(blue_frame , mask, 256);
-        g_histo = histogram::intensity_histogram(green_frame, mask, 256);
+        b_histo = histogram::intensity_histogram(blue_frame , mask, 16);
+        g_histo = histogram::intensity_histogram(green_frame, mask, 16);
+        r_histo = histogram::intensity_histogram(red_frame  , mask, 16);
 
         // create plot canvases
         histo_plot  = cv::Mat::zeros(plot_size.height, plot_size.width, CV_8UC3);
         histo_plot2 = cv::Mat::zeros(plot_size.height, plot_size.width, CV_8UC3);
+        histo_plot3 = cv::Mat::zeros(plot_size.height, plot_size.width, CV_8UC3);
 
         // plot thesholds
-        cv::line( histo_plot , cv::Point( (th_blue*plot_size.width / 256) , 0 ) , cv::Point( (th_blue*plot_size.width / 256) ,  plot_size.height) , cv::Scalar(0,0,255), 1, 8, 0  );
-        cv::line( histo_plot2, cv::Point( (th_green*plot_size.width / 256) , 0 ) , cv::Point( (th_green*plot_size.width / 256) ,  plot_size.height) , cv::Scalar(0,0,255), 1, 8, 0  );
+        cv::line( histo_plot , cv::Point( (th_blue*plot_size.width / 256) , 0 ) , cv::Point( (th_blue*plot_size.width / 256) ,  plot_size.height) , cv::Scalar(255, 255, 255), 1, 8, 0  );
+        cv::line( histo_plot2, cv::Point( (th_green*plot_size.width / 256) , 0 ) , cv::Point( (th_green*plot_size.width / 256) ,  plot_size.height) , cv::Scalar(255, 255, 255), 1, 8, 0  );
+        cv::line( histo_plot3, cv::Point( (th_red*plot_size.width / 256) , 0 ) , cv::Point( (th_red*plot_size.width / 256) ,  plot_size.height) , cv::Scalar(255, 255, 255), 1, 8, 0  );
 
         //// kernel for smoothing
         //int kernel_size = 5;
@@ -215,11 +228,13 @@ int main(int argc, char* argv[])
         //filter2D(g_histo, g_smooth, -1, kernel);
         //g_smooth /= kernel_size;
 
-        //calc_threshold(g_histo);
+        th_red = calc_threshold(r_histo, -1);
+        std::cout << "th_red = " << th_red << " | " << th_red/16 << std::endl;
 
         // plot original histos
         shapes::plot(histo_plot , b_histo, cv::Scalar(255,0,0), 1); //, max_histo);
         shapes::plot(histo_plot2, g_histo, cv::Scalar(0,255,0), 1); //, max_histo);
+        shapes::plot(histo_plot3, g_histo, cv::Scalar(0,0,255), 1); //, max_histo);
 
         // plot smoothed histos
         //shapes::plot(histo_plot , b_smooth, cv::Scalar(0,0,255), 1, max_histo);
@@ -228,7 +243,7 @@ int main(int argc, char* argv[])
         // add pictures on top of big frame
         frame = frame.mul(frame_mask);
 
-        frame = forat_mask(frame, th_blue, th_green);
+        frame = forat_mask(frame, th_blue, th_green, th_red);
 
         std::vector<cv::Mat> channels;
         channels.push_back(frame);
@@ -239,6 +254,7 @@ int main(int argc, char* argv[])
 
         histo_plot.copyTo(frame(cv::Rect(frame.cols - histo_plot.cols - 20, 20 , histo_plot.cols, histo_plot.rows)));
         histo_plot2.copyTo(frame(cv::Rect(frame.cols - histo_plot2.cols - 20, 40 + histo_plot.rows , histo_plot2.cols, histo_plot2.rows)));
+        histo_plot3.copyTo(frame(cv::Rect(frame.cols - histo_plot3.cols - 20, 60 + histo_plot.rows*2 , histo_plot3.cols, histo_plot3.rows)));
 
         //show the frame in the created window
         cv::imshow(video_window_name, frame);
@@ -263,10 +279,10 @@ int main(int argc, char* argv[])
             std::cout << "Esc key is pressed by user. Stoppig the video" << std::endl;
             break;
         }
-        //else if(wait_key == 32){  // space - key
-        //    flag_autoplay = !flag_autoplay;
-        //}
-        //else if(wait_key == 104){ // h - key
+        else if(wait_key == 112){  // p - key
+            flag_autoplay = !flag_autoplay;
+            keep_frame = flag_autoplay;
+        }
         else if(wait_key == 32){ // space - key
             //std::cout << "h key" << std::endl;
             keep_frame = !keep_frame; //true;
