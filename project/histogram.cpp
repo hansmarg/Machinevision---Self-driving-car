@@ -11,8 +11,8 @@ static int diffclock_ms(clock_t clock1, clock_t clock2){
     return (int)diffms;
 }
 
-//using namespace cv;
-//using namespace std;
+using namespace cv;
+using namespace std;
 
 int calc_threshold(cv::Mat histo, int shift=0){
 
@@ -58,6 +58,7 @@ int main(int argc, char* argv[])
     // flag default values
     bool flag_autoplay = false;
     bool flag_speedup = false;
+    bool flag_bigger_trap = false;
 
     // parse arguments
     for(int i=1; i<argc; i++){
@@ -66,6 +67,9 @@ int main(int argc, char* argv[])
         }
         else if(strcmp(argv[i], "--speedup") == 0){
             flag_speedup = true;
+        }
+        else if(strcmp(argv[i], "--bigger_trap") == 0){
+            flag_bigger_trap = true;
         }
         else{
             video_path = argv[i];
@@ -111,7 +115,15 @@ int main(int argc, char* argv[])
     cv::Mat mask = cv::Mat::zeros(frame_h, frame_w, CV_8U); // all 0
     cv::Mat frame_mask = cv::Mat(frame_h, frame_w, CV_8UC3, cv::Scalar(255,0,0)); // all 0
 
-    std::vector<cv::Point> mask_points = shapes::trapazoid( 140, 800, cvRound(frame_w/2), 205, frame_h - 265);
+
+    std::vector<cv::Point> mask_points;
+    if(flag_bigger_trap){
+        //mask_points = shapes::trapazoid(90, 540, cvRound(frame_w/2), 220, frame_h - 220  - 60);
+        mask_points = shapes::trapazoid(350, 1800, cvRound(frame_w/2), 205, frame_h - 205 - 60);
+    }else{
+        //mask_points = shapes::trapazoid(90, 600, cvRound(frame_w/2), 205, frame_h - 205 - 60);
+        mask_points = shapes::trapazoid( 140, 800, cvRound(frame_w/2), 205, frame_h - 265);
+    }
 
     // craete the mask
     cv::fillConvexPoly(mask,              // Image to be drawn on
@@ -147,6 +159,10 @@ int main(int argc, char* argv[])
     cv::Mat org_frame;
 
     int th_blue = 0, th_green = 0, th_red = 180;
+
+    // polygon figure
+    cv::Mat trap_outline(frame_h, frame_w, CV_8UC3, cv::Scalar(1,1,1));
+    shapes::draw_polygon(trap_outline, mask_points);
 
     while (true)
     {
@@ -186,7 +202,7 @@ int main(int argc, char* argv[])
             }
         }
 
-        cv::Mat frame(org_frame);
+        cv::Mat frame = org_frame.clone();
 
         frame /= 16;
         frame *= 16;
@@ -245,19 +261,31 @@ int main(int argc, char* argv[])
 
         frame = forat_mask(frame, th_blue, th_green, th_red);
 
-        std::vector<cv::Mat> channels;
-        channels.push_back(frame);
-        channels.push_back(frame);
-        channels.push_back(frame);
+	    vector<Vec4i> lines;
+        HoughLinesP(frame, lines, 1, CV_PI/180, 25, 30, 250 );
 
-        cv::merge(channels, frame);
+        //std::vector<cv::Mat> channels;
+        //channels.push_back(frame);
+        //channels.push_back(frame);
+        //channels.push_back(frame);
 
-        histo_plot.copyTo(frame(cv::Rect(frame.cols - histo_plot.cols - 20, 20 , histo_plot.cols, histo_plot.rows)));
-        histo_plot2.copyTo(frame(cv::Rect(frame.cols - histo_plot2.cols - 20, 40 + histo_plot.rows , histo_plot2.cols, histo_plot2.rows)));
-        histo_plot3.copyTo(frame(cv::Rect(frame.cols - histo_plot3.cols - 20, 60 + histo_plot.rows*2 , histo_plot3.cols, histo_plot3.rows)));
+        //cv::merge(channels, frame);
+        //
+        cv::Mat new_frame = org_frame.clone();
+        new_frame = new_frame.mul(trap_outline);
 
-        //show the frame in the created window
-        cv::imshow(video_window_name, frame);
+        for( size_t i = 0; i < lines.size(); i++ )
+        {
+            Vec4i l = lines[i];
+            line( new_frame, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
+        }
+
+        //histo_plot.copyTo(new_frame(cv::Rect(new_frame.cols - histo_plot.cols - 20, 20 , histo_plot.cols, histo_plot.rows)));
+        //histo_plot2.copyTo(new_frame(cv::Rect(new_frame.cols - histo_plot2.cols - 20, 40 + histo_plot.rows , histo_plot2.cols, histo_plot2.rows)));
+        //histo_plot3.copyTo(new_frame(cv::Rect(new_frame.cols - histo_plot3.cols - 20, 60 + histo_plot.rows*2 , histo_plot3.cols, histo_plot3.rows)));
+
+        //show the new_frame in the created window
+        cv::imshow(video_window_name, new_frame);
         //cv::imshow("blue", blue_frame);
         //cv::imshow("green", green_frame);
 
