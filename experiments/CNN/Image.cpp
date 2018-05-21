@@ -4,7 +4,8 @@
 
 #include "Object.cpp"
 
-// This is the class which contains the image, all related data, and the objects in the image
+
+// This class contains the image, all related data, and the objects in the image
 
 
 class Image
@@ -18,12 +19,14 @@ class Image
 
 		Object object(int i);								// returns the object at index i
 		std::vector<Object> get_objects(void);				// returns all objects in the image
-		void add_object(int coords[4], std::string label);	// adds an object to the Image
+		void add_object(std::vector< std::pair<int, int> > b_box, std::string label);	// adds an object to the Image
+
+		void rescale(int resolution[2]);	// Scales the data and objects to match a new resolution. 
 
 
 	private:
 		std::string filename;	
-		int image_size[3];		// size of the image (X x Y x C), C = channels
+		int image_size[3];		// size of the image (X, Y, C), C = channels
 		int top_left_coords[2];	// Top left coordinates (vet ikke om den trengs)
 		int number_of_objects;	// total number of objects in the image
 		
@@ -39,8 +42,9 @@ Image::Image()
 Image::Image(std::string fname, int img_size[3], int coords[2], int num_of_objects)
 {
 	filename = fname;
+
 	for (int i = 0; i < 3; ++i) image_size[i] = img_size[i];	// fordi arrayA = arrayB funker ikke uten -std=c++11 compiler support. 
-	for (int i = 0; i < 2; ++i) top_left_coords[i] = coords[i];
+	for (int i = 0; i < 2; ++i) top_left_coords[i] = coords[i];	//
 
 	number_of_objects = num_of_objects;
 }
@@ -55,10 +59,15 @@ std::vector<Object> Image::get_objects(void)
 	return objects;
 }
 
-void Image::add_object(int coords[4], std::string new_label)
+void Image::add_object(std::vector< std::pair<int, int> > b_box, std::string new_label)
 {
-	Object new_object = Object(coords, new_label);
+	Object new_object = Object(b_box, new_label);
 	objects.push_back(new_object);
+}
+
+void Image::rescale(int resolution[2])
+{
+	std::cout << "Image::rescale PLACEHOLDER function" << std::endl;
 }
 
 /*

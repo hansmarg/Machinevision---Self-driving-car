@@ -8,7 +8,7 @@ Objects with ground truth : 3 { "PAScarRear" "PAScarRear" "PAScarRear" }
 # Note that there might be other objects in the image
 # for which ground truth data has not been provided.
 
-# Top left pixel co-ordinates : (1, 1)
+# Top left pixel co-ordinates :  (1, 1)
 
 # Details for object 1 ("PAScarRear")
 Original label for object 1 "PAScarRear" : "carRear"
