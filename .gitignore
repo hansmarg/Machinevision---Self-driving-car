@@ -9,3 +9,7 @@
 
 */build/*
 !*/build/.gitkeep
+
+
+./dataset/pascal/*
+
